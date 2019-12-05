@@ -16,9 +16,10 @@
   "homepage": "https://github.com/muralco/eslint-plugin-muralco",
   "scripts": {
     "build": "npm run lint && tsc",
-    "dist": "rm -rf dist && npm run build && cp package*.json README.md LICENSE dist",
+    "dist": "rm -rf dist && npm run build && npm run test && cp package*.json README.md LICENSE dist && rm dist/test*",
     "lint": "eslint --ext .ts src",
     "pack": "npm run dist && cd dist && npm pack",
+    "test": "TS_NODE_FILES=true cucumber-js --require-module ts-node/register -r src/test.ts $*",
     "watch": "tsc -w"
   },
   "keywords": [
@@ -36,7 +37,10 @@
     "eslint": "^6.7.2",
     "eslint-config-prettier": "^6.7.0",
     "eslint-plugin-prettier": "^3.1.1",
+    "pickled-cucumber": "^2.0.11",
     "prettier": "^1.19.1",
+    "ts-node": "^8.5.4",
     "typescript": "^3.7.3"
-  }
+  },
+  "dependencies": {}
 }
