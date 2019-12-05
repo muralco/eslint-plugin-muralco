@@ -1,0 +1,15 @@
+{
+  "[typescript]": {
+    "editor.formatOnSave": true
+  },
+  "editor.rulers": [80],
+  "eslint.autoFixOnSave": true,
+  "eslint.validate": [
+    { "language": "typescript", "autoFix": true },
+    { "language": "typescriptreact", "autoFix": true }
+  ],
+  "prettier.useTabs": false,
+  "files.exclude": {
+    "dist": true
+  }
+}
