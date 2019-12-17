@@ -130,3 +130,63 @@ Scenario: ignore non-consecutive imports
     import { a2 } from './a';
     """
   Then the code is OK
+
+Scenario: long unsorted list
+  When applying the linter to
+    """
+    import z from './z';
+    import y from './y';
+    import x from './x';
+    import w from './w';
+    import v from './v';
+    import u from './u';
+    import t from './t';
+    import s from './s';
+    import r from './r';
+    import q from './q';
+    import p from './p';
+    import o from './o';
+    import n from './n';
+    import m from './m';
+    import l from './l';
+    import k from './k';
+    import j from './j';
+    import i from './i';
+    import h from './h';
+    import g from './g';
+    import f from './f';
+    import e from './e';
+    import d from './d';
+    import c from './c';
+    import b from './b';
+    import a from './a';
+    """
+  Then the fixed code is
+    """
+    import a from './a';
+    import b from './b';
+    import c from './c';
+    import d from './d';
+    import e from './e';
+    import f from './f';
+    import g from './g';
+    import h from './h';
+    import i from './i';
+    import j from './j';
+    import k from './k';
+    import l from './l';
+    import m from './m';
+    import n from './n';
+    import o from './o';
+    import p from './p';
+    import q from './q';
+    import r from './r';
+    import s from './s';
+    import t from './t';
+    import u from './u';
+    import v from './v';
+    import w from './w';
+    import x from './x';
+    import y from './y';
+    import z from './z';
+    """

@@ -12,13 +12,11 @@ const MESSAGE = 'Invalid import sorting';
 
 const NO_RANGE = [0, 0];
 
-const compareImports = (a: ImportSpec, b: ImportSpec): -1 | 0 | 1 => {
-  if (
-    (a.importNode.range || NO_RANGE)[1] + 1 !==
-    (b.importNode.range || NO_RANGE)[0]
-  )
-    return -1;
+const comesRightAfter = (a: ImportSpec, b: ImportSpec): boolean =>
+  (a.importNode.range || NO_RANGE)[1] + 1 ===
+  (b.importNode.range || NO_RANGE)[0];
 
+const compareImports = (a: ImportSpec, b: ImportSpec): -1 | 0 | 1 => {
   const [aPrefix, aSuffix] = a.pattern;
   const [bPrefix, bSuffix] = b.pattern;
 
@@ -30,6 +28,14 @@ const compareImports = (a: ImportSpec, b: ImportSpec): -1 | 0 | 1 => {
   if (aPrefix) return 1;
   if (bPrefix) return -1;
   return aSuffix <= bSuffix ? -1 : 1;
+};
+
+const compareConsecutiveImports = (
+  a: ImportSpec,
+  b: ImportSpec,
+): -1 | 0 | 1 => {
+  if (!comesRightAfter(a, b)) return -1;
+  return compareImports(a, b);
 };
 
 const getPattern = (value: string): string[] =>
@@ -62,7 +68,7 @@ const sortedImportsRule: Rule.RuleModule = {
           }));
         const broken = imports
           .slice(1)
-          .filter((n, i) => compareImports(imports[i], n) === 1);
+          .filter((n, i) => compareConsecutiveImports(imports[i], n) === 1);
 
         if (!broken.length) return;
 
@@ -72,18 +78,23 @@ const sortedImportsRule: Rule.RuleModule = {
           fix: function(fixer) {
             const sourceCode = context.getSourceCode();
             const firstBroken = broken[0];
+            const lastBroken = broken
+              .slice(1)
+              .reduce((a, b) => (comesRightAfter(a, b) ? b : a), firstBroken);
             const swapWith = imports[imports.indexOf(firstBroken) - 1];
 
             const start = (swapWith.importNode.range || NO_RANGE)[0];
-            const end = (firstBroken.importNode.range || NO_RANGE)[1];
+            const end = (lastBroken.importNode.range || NO_RANGE)[1];
 
-            return fixer.replaceTextRange(
-              [start, end],
-              [
-                sourceCode.getText(firstBroken.importNode),
-                sourceCode.getText(swapWith.importNode),
-              ].join('\n'),
-            );
+            const sorted = [
+              swapWith,
+              ...broken.slice(0, broken.indexOf(lastBroken) + 1),
+            ]
+              .sort(compareImports)
+              .map(n => sourceCode.getText(n.importNode))
+              .join('\n');
+
+            return fixer.replaceTextRange([start, end], sorted);
           },
         });
       },

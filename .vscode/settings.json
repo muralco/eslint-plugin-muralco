@@ -11,5 +11,8 @@
   "prettier.useTabs": false,
   "files.exclude": {
     "dist": true
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
   }
 }
