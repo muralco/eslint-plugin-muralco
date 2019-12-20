@@ -6,10 +6,10 @@ import { Linter, Rule } from 'eslint';
 const plugin: { rules: Record<string, Rule.RuleModule> } = require('./index');
 
 const setup: SetupFn = ({
+  Before,
   compare,
   Given,
   getCtx,
-  pushCtx,
   setCtx,
   Then,
   When,
@@ -20,14 +20,22 @@ const setup: SetupFn = ({
     linter.defineRule(name, rule),
   );
 
-  Given('the "{word}" rule is enabled', ruleName => {
-    linter.defineRule(ruleName, plugin.rules[ruleName]);
-    pushCtx('$rules', ruleName);
-  });
+  Before(() => setCtx('$rules', {}));
+
+  Given(
+    'the "{word}" rule is enabled',
+    (ruleName, value) => {
+      getCtx<Linter.RulesRecord>('$rules')[ruleName] = JSON.parse(value || '2');
+    },
+    { optional: 'with' },
+  );
   Given('the ECMA version is {int}', version =>
     setCtx('$version', Number(version)),
   );
-  Given('a file with', payload => setCtx('$file', payload));
+  Given('a(?: "{word}")? file with', (fileName, payload) => {
+    if (fileName) setCtx('$fileName', fileName);
+    setCtx('$file', payload);
+  });
 
   const lint = (fix: boolean): Linter.FixReport =>
     linter.verifyAndFix(
@@ -37,12 +45,10 @@ const setup: SetupFn = ({
           ecmaVersion: getCtx('$version') || 2015,
           sourceType: 'module',
         },
-        rules: (getCtx<string[]>('$rules') || []).reduce((acc, name) => {
-          acc[name] = 2;
-          return acc;
-        }, {} as Record<string, 2>),
+        rules: getCtx<Linter.RulesRecord>('$rules'),
       },
       {
+        filename: getCtx<string>('$fileName') || 'file.js',
         fix,
       },
     );
@@ -54,6 +60,16 @@ const setup: SetupFn = ({
       setCtx('$result', lint(false));
     },
     { optional: 'to' },
+  );
+
+  When(
+    'linting "{word}"',
+    (fileName, payload) => {
+      if (payload) setCtx('$file', payload);
+      setCtx('$fileName', fileName);
+      setCtx('$result', lint(false));
+    },
+    { optional: 'with' },
   );
 
   const getResult = (): Linter.FixReport => getCtx<Linter.FixReport>('$result');
@@ -84,8 +100,8 @@ const setup: SetupFn = ({
   };
 
   Then(
-    'an error is at',
-    payload => {
+    'an error(?: with message "([^"]+)")? is at',
+    (message, payload) => {
       const startPos = payload.indexOf('>>>');
       if (startPos === -1) {
         fail(`Cannot find error marker '>>>' in:
@@ -108,10 +124,11 @@ const setup: SetupFn = ({
         'includes',
         result.messages,
         JSON.stringify({
-          line: start.line,
           column: start.column,
-          endLine: end.line,
           endColumn: end.column,
+          endLine: end.line,
+          line: start.line,
+          message,
         }),
       );
     },

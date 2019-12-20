@@ -1,3 +1,4 @@
+import layersRule from './layers';
 import sortedImportsRule from './sorted-imports';
 
 module.exports = {
@@ -10,6 +11,7 @@ module.exports = {
     },
   },
   rules: {
+    layers: layersRule,
     'sorted-imports': sortedImportsRule,
   },
 };

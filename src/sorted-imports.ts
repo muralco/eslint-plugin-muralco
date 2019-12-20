@@ -51,7 +51,6 @@ const sortedImportsRule: Rule.RuleModule = {
       description: 'sort imports from more generic to more specific',
       category: 'Style',
       recommended: false,
-      url: 'https://eslint.org/docs/rules/no-extra-semi',
     },
     fixable: 'code',
     schema: [], // no options
