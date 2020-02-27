@@ -115,3 +115,10 @@ Scenario: rejected mutiple
     """
     >>>import '../c/util';<<<
     """
+
+Scenario: allowed nested siblings
+  When linting "./src/a/1/file.ts" with
+    """
+    import '../2/other';
+    """
+  Then the code is OK

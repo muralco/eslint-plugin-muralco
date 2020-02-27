@@ -82,7 +82,8 @@ const layersRule: Rule.RuleModule = {
 
         const isChild =
           absoluteImportedPath.includes(absoluteFileDir) ||
-          absoluteFilePath.includes(dirname(absoluteImportedPath));
+          absoluteFilePath.includes(dirname(absoluteImportedPath)) ||
+          matching.some(s => absoluteImportedPath.match(s.from));
 
         const failing = matching.filter(
           s =>
