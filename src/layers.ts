@@ -92,7 +92,7 @@ const layersRule: Rule.RuleModule = {
           s =>
             (!isChild || !s.allowChildren) &&
             // The path does not match any of the allowed patterns
-            (!s.to.every(r => absoluteImportedPath.match(r)) ||
+            (!s.to.some(r => absoluteImportedPath.match(r)) ||
               // The path matches some of the rejected patterns
               s.except.some(r => absoluteImportedPath.match(r))),
         );

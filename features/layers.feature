@@ -16,7 +16,8 @@ Background:
         "message": "Files from layer 'a' can only import files from layer 'b'"
       },
       { "from": "/src/global/", "to": ["^allowed"] },
-      { "from": "/src/x/", "to": ["y"], "except": ["y/types"] }
+      { "from": "/src/x/", "to": ["y"], "except": ["y/types"] },
+      { "from": "/src/multiple/", "to": ["y1", "y2"] }
     ]]
     """
 
@@ -140,3 +141,10 @@ Scenario: rejected when matching exception rules
     """
     >>>import '../y/types';<<<
     """
+
+Scenario: allowed multimatch
+  When linting "./src/multiple/file.ts" with
+    """
+    import '../y1/module';
+    """
+  Then the code is OK
