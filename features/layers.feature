@@ -15,7 +15,8 @@ Background:
         "to": ["/src/b/"],
         "message": "Files from layer 'a' can only import files from layer 'b'"
       },
-      { "from": "/src/global/", "to": ["^allowed"] }
+      { "from": "/src/global/", "to": ["^allowed"] },
+      { "from": "/src/x/", "to": ["y"], "except": ["y/types"] }
     ]]
     """
 
@@ -122,3 +123,20 @@ Scenario: allowed nested siblings
     import '../2/other';
     """
   Then the code is OK
+
+Scenario: allowed when not matching exception rules
+  When linting "./src/x/file.ts" with
+    """
+    import '../y/module';
+    """
+  Then the code is OK
+
+Scenario: rejected when matching exception rules
+  When linting "./src/x/file.ts" with
+    """
+    import '../y/types';
+    """
+  Then an error with message "A file from layer `./src/x/file.ts` cannot import a file from layer `../y/types`" is at
+    """
+    >>>import '../y/types';<<<
+    """

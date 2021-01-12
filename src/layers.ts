@@ -3,6 +3,7 @@ import { dirname, resolve } from 'path';
 
 interface LayerOption {
   allowChildren?: boolean;
+  except?: string[];
   from: string;
   message?: string;
   to: string[];
@@ -10,6 +11,7 @@ interface LayerOption {
 
 interface LayerSpec {
   allowChildren: boolean;
+  except: RegExp[];
   from: RegExp;
   message: string;
   to: RegExp[];
@@ -27,6 +29,7 @@ const resolveOptions = (opts: LayerOption[]): LayerSpec[] => {
   if (opts === cachedOpts && cachedSpecs) return cachedSpecs;
   cachedSpecs = opts.map(opt => ({
     allowChildren: opt.allowChildren !== false,
+    except: opt.except ? opt.except.map(toRe) : [],
     from: toRe(opt.from),
     message: opt.message || MESSAGE,
     to: opt.to.map(toRe),
@@ -88,7 +91,10 @@ const layersRule: Rule.RuleModule = {
         const failing = matching.filter(
           s =>
             (!isChild || !s.allowChildren) &&
-            s.to.every(r => !absoluteImportedPath.match(r)),
+            // The path does not match any of the allowed patterns
+            (!s.to.every(r => absoluteImportedPath.match(r)) ||
+              // The path matches some of the rejected patterns
+              s.except.some(r => absoluteImportedPath.match(r))),
         );
 
         if (!failing.length) return;
