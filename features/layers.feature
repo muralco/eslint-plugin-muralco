@@ -148,3 +148,20 @@ Scenario: allowed multimatch
     import '../y1/module';
     """
   Then the code is OK
+
+Scenario: catch all layer does not disable everything
+  Given the "layers" rule is enabled with
+    """
+    [2, [
+      { "from": "/src/a/", "to": ["/src/b/"], "message": "should fail" },
+      { "from": ".*", "to": [".*"], "except": ["/c"] }
+    ]]
+    """
+  When linting "./src/a/file.ts" with
+    """
+    import '../c/module';
+    """
+  Then an error with message "should fail" is at
+    """
+    >>>import '../c/module';<<<
+    """

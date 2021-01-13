@@ -4,7 +4,7 @@ import { dirname, resolve } from 'path';
 interface LayerOption {
   allowChildren?: boolean;
   except?: string[];
-  from: string;
+  from?: string;
   message?: string;
   to: string[];
 }
@@ -12,7 +12,7 @@ interface LayerOption {
 interface LayerSpec {
   allowChildren: boolean;
   except: RegExp[];
-  from: RegExp;
+  from: RegExp | null;
   message: string;
   to: RegExp[];
 }
@@ -30,7 +30,7 @@ const resolveOptions = (opts: LayerOption[]): LayerSpec[] => {
   cachedSpecs = opts.map(opt => ({
     allowChildren: opt.allowChildren !== false,
     except: opt.except ? opt.except.map(toRe) : [],
-    from: toRe(opt.from),
+    from: !opt.from || opt.from === '.*' ? null : toRe(opt.from),
     message: opt.message || MESSAGE,
     to: opt.to.map(toRe),
   }));
@@ -77,7 +77,9 @@ const layersRule: Rule.RuleModule = {
             ? resolve(absoluteFileDir, importedPath)
             : importedPath;
 
-        const matching = specs.filter(s => absoluteFilePath.match(s.from));
+        const matching = specs.filter(
+          s => !s.from || absoluteFilePath.match(s.from),
+        );
 
         if (!matching.length) {
           return;
@@ -85,17 +87,17 @@ const layersRule: Rule.RuleModule = {
 
         const isChild =
           absoluteImportedPath.includes(absoluteFileDir) ||
-          absoluteFilePath.includes(dirname(absoluteImportedPath)) ||
-          matching.some(s => absoluteImportedPath.match(s.from));
+          absoluteFilePath.includes(dirname(absoluteImportedPath));
 
-        const failing = matching.filter(
-          s =>
-            (!isChild || !s.allowChildren) &&
-            // The path does not match any of the allowed patterns
-            (!s.to.some(r => absoluteImportedPath.match(r)) ||
-              // The path matches some of the rejected patterns
-              s.except.some(r => absoluteImportedPath.match(r))),
-        );
+        const isValid = (s: LayerSpec): boolean =>
+          (s.allowChildren &&
+            (isChild || (!!s.from && !!absoluteImportedPath.match(s.from)))) ||
+          // The path matches any of the allowed patterns
+          (s.to.some(r => absoluteImportedPath.match(r)) &&
+            // The path does not match some of the rejected patterns
+            !s.except.some(r => absoluteImportedPath.match(r)));
+
+        const failing = matching.filter(s => !isValid(s));
 
         if (!failing.length) return;
 
