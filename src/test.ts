@@ -131,6 +131,25 @@ const setup: SetupFn = ({
           message,
         }),
       );
+      setCtx(
+        '$line-error',
+        result.messages
+          .filter(
+            m =>
+              m.column === start.column &&
+              m.line === start.line &&
+              m.endColumn === end.column &&
+              m.endLine === end.line,
+          )
+          .map(m => m.message),
+      );
+    },
+    { inline: true },
+  );
+  Then(
+    'that error message includes',
+    message => {
+      compare('includes', getCtx('$line-error'), JSON.stringify(message));
     },
     { inline: true },
   );

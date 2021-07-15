@@ -1,4 +1,5 @@
 import layersRule from './layers';
+import modulesRule from './modules';
 import sortedImportsRule from './sorted-imports';
 import customJsxRule from './custom-jsx';
 
@@ -14,6 +15,7 @@ module.exports = {
   rules: {
     'custom-jsx': customJsxRule,
     layers: layersRule,
+    modules: modulesRule,
     'sorted-imports': sortedImportsRule,
   },
 };
