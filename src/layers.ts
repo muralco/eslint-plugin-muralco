@@ -1,5 +1,5 @@
 import { Rule } from 'eslint';
-import { dirname, resolve } from 'path';
+import { defineImportRule, toRe } from './util';
 
 interface LayerOption {
   allowChildren?: boolean;
@@ -17,32 +17,14 @@ interface LayerSpec {
   to: RegExp[];
 }
 
-const toRe = (s: string): RegExp => new RegExp(s);
-
 const MESSAGE =
   'A file from layer `{from}` cannot import a file from layer `{to}`';
-
-let cachedOpts: LayerOption[] | undefined;
-let cachedSpecs: LayerSpec[] | undefined;
-
-const resolveOptions = (opts: LayerOption[]): LayerSpec[] => {
-  if (opts === cachedOpts && cachedSpecs) return cachedSpecs;
-  cachedSpecs = opts.map(opt => ({
-    allowChildren: opt.allowChildren !== false,
-    except: opt.except ? opt.except.map(toRe) : [],
-    from: !opt.from || opt.from === '.*' ? null : toRe(opt.from),
-    message: opt.message || MESSAGE,
-    to: opt.to.map(toRe),
-  }));
-  cachedOpts = opts;
-  return cachedSpecs;
-};
 
 const layersRule: Rule.RuleModule = {
   meta: {
     docs: {
-      description: 'sort imports from more generic to more specific',
-      category: 'Style',
+      description: 'enforce layer abstraction',
+      category: 'Best Practices',
       recommended: false,
     },
     schema: [
@@ -62,59 +44,38 @@ const layersRule: Rule.RuleModule = {
     ],
     type: 'suggestion',
   },
-  create: function(context) {
-    const filePath = context.getFilename();
-    const absoluteFilePath = resolve(filePath);
-    const absoluteFileDir = dirname(absoluteFilePath);
-    const specs = resolveOptions(context.options[0] as LayerOption[]);
+  create: defineImportRule<LayerOption, LayerSpec>({
+    applySpecs: (specs, from, getTo) =>
+      specs.map(spec => {
+        //  does not apply
+        if (spec.from && !from.absoluteFilePath.match(spec.from)) return null;
 
-    return {
-      ImportDeclaration: function(node): void {
-        if (node.type !== 'ImportDeclaration') return;
-        const importedPath = node.source.value as string;
-        const absoluteImportedPath =
-          importedPath[0] === '.'
-            ? resolve(absoluteFileDir, importedPath)
-            : importedPath;
-
-        const matching = specs.filter(
-          s => !s.from || absoluteFilePath.match(s.from),
-        );
-
-        if (!matching.length) {
-          return;
-        }
+        const to = getTo();
 
         const isChild =
-          absoluteImportedPath.includes(absoluteFileDir) ||
-          absoluteFilePath.includes(dirname(absoluteImportedPath));
+          to.absoluteImportedPath.includes(from.absoluteFileDir) ||
+          from.absoluteFilePath.includes(to.absoluteImportedDir);
 
-        const isValid = (s: LayerSpec): boolean =>
-          (s.allowChildren &&
-            (isChild || (!!s.from && !!absoluteImportedPath.match(s.from)))) ||
+        const isValid =
+          (spec.allowChildren &&
+            (isChild ||
+              (!!spec.from && !!to.absoluteImportedPath.match(spec.from)))) ||
           // The path matches any of the allowed patterns
-          (s.to.some(r => absoluteImportedPath.match(r)) &&
+          (spec.to.some(r => to.absoluteImportedPath.match(r)) &&
             // The path does not match some of the rejected patterns
-            !s.except.some(r => absoluteImportedPath.match(r)));
+            !spec.except.some(r => to.absoluteImportedPath.match(r)));
 
-        const failing = matching.filter(s => !isValid(s));
-
-        if (!failing.length) return;
-
-        const reported: string[] = [];
-        failing.forEach(s => {
-          if (reported.includes(s.message)) return;
-          reported.push(s.message);
-          context.report({
-            message: s.message
-              .replace('{from}', filePath)
-              .replace('{to}', importedPath),
-            node,
-          });
-        });
-      },
-    };
-  },
+        return isValid ? null : spec.message;
+      }),
+    resolveOptions: opts =>
+      opts.map(opt => ({
+        allowChildren: opt.allowChildren !== false,
+        except: opt.except ? opt.except.map(toRe) : [],
+        from: !opt.from || opt.from === '.*' ? null : toRe(opt.from),
+        message: opt.message || MESSAGE,
+        to: opt.to.map(toRe),
+      })),
+  }),
 };
 
 export default layersRule;
