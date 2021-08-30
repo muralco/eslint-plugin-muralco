@@ -6,13 +6,13 @@ export const toRe = (s: string): RegExp => new RegExp(s);
 
 const isNotNull = <T>(x: T | null): x is T => x !== null;
 
-interface FromInfo {
+export interface FromInfo {
   filePath: string;
   absoluteFilePath: string;
   absoluteFileDir: string;
 }
 
-interface ImportInfo {
+export interface ImportInfo {
   importPath: string;
   absoluteImportedPath: string;
   absoluteImportedDir: string;
