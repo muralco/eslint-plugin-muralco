@@ -1,6 +1,11 @@
 import { fail } from 'assert';
 import pickledCucumber, { SetupFn } from 'pickled-cucumber';
 import { Linter, Rule } from 'eslint';
+import {
+  INVALID_EXTERNAL,
+  NOT_A_DEPENDENCY,
+  PRIVATE_IMPLEMENTATION,
+} from './modules';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const plugin: { rules: Record<string, Rule.RuleModule> } = require('./index');
@@ -152,6 +157,45 @@ const setup: SetupFn = ({
       compare('includes', getCtx('$line-error'), JSON.stringify(message));
     },
     { inline: true },
+  );
+
+  const ERROR_PRESETS: Record<string, string> = {
+    MODULE_INBOUND_PRIVATE: PRIVATE_IMPLEMENTATION,
+    MODULE_OUTBOUND_DEPENDENCY: NOT_A_DEPENDENCY,
+    MODULE_OUTBOUND_EXTERNAL: INVALID_EXTERNAL,
+  };
+
+  Then(
+    'that error message matches {variable}',
+    (preset, payloadString) => {
+      const msg = ERROR_PRESETS[preset];
+      if (!msg) {
+        fail(
+          `Invalid preset: '${preset}'. Valid values include: ${Object.keys(
+            ERROR_PRESETS,
+          )
+            .map(k => `'${k}'`)
+            .join(', ')}`,
+        );
+      }
+
+      const payload = payloadString ? JSON.parse(payloadString) : undefined;
+
+      const errorPreset = payload
+        ? Object.entries(payload).reduce(
+            (m, [k, v]) => m.replace(new RegExp(`{${k}}`, 'g'), `${v}`),
+            msg,
+          )
+        : msg;
+
+      const error =
+        payload && payload['message']
+          ? `${errorPreset}\n\n${payload['message']}`
+          : errorPreset;
+
+      compare('includes', getCtx('$line-error'), JSON.stringify(error));
+    },
+    { optional: 'with' },
   );
 };
 
