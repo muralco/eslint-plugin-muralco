@@ -1,5 +1,5 @@
 import { Rule } from 'eslint';
-import { Identifier, Node } from 'estree';
+import { CallExpression, Identifier, ImportDeclaration } from 'estree';
 import { dirname, resolve } from 'path';
 
 export const toRe = (s: string): RegExp => new RegExp(s);
@@ -12,13 +12,19 @@ export interface FromInfo {
   absoluteFileDir: string;
 }
 
+type ImportNode = ImportDeclaration | CallExpression;
+
 export interface ImportInfo {
   importPath: string;
   absoluteImportedPath: string;
   absoluteImportedDir: string;
+  node: ImportNode;
 }
 
-type ImportError = string | null;
+type ImportError =
+  | string
+  | { message: string; fix: (fixer: Rule.RuleFixer) => Rule.Fix }
+  | null;
 
 export interface ImportRule {
   applyRule: (
@@ -42,11 +48,15 @@ export const defineImportRule = ({
       filePath,
     };
 
-    const applyRuleInternal = (node: Node, importedPath: string): void => {
+    const applyRuleInternal = (
+      node: ImportNode,
+      importedPath: string,
+    ): void => {
       const importInfo: ImportInfo = {
         importPath: importedPath,
         absoluteImportedDir: '',
         absoluteImportedPath: '',
+        node,
       };
 
       const getImportInfo = (): ImportInfo => {
@@ -69,10 +79,13 @@ export const defineImportRule = ({
       if (!failing.length) return;
 
       const reported: string[] = [];
-      failing.forEach(message => {
+      failing.forEach(error => {
+        const message = typeof error === 'string' ? error : error.message;
+
         if (reported.includes(message)) return;
         reported.push(message);
         context.report({
+          fix: typeof error === 'string' ? undefined : error.fix,
           message: message
             .replace(/\{from\}/g, filePath)
             .replace(/\{to\}/g, importedPath),
