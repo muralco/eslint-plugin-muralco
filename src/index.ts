@@ -1,3 +1,4 @@
+import boundedImports from './bounded-imports';
 import layersRule from './layers';
 import modulesRule from './modules';
 import shortImportsRule from './short-imports';
@@ -14,6 +15,7 @@ module.exports = {
     },
   },
   rules: {
+    'bounded-imports': boundedImports,
     'custom-jsx': customJsxRule,
     layers: layersRule,
     modules: modulesRule,
