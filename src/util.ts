@@ -18,33 +18,23 @@ export interface ImportInfo {
   absoluteImportedDir: string;
 }
 
-export interface ImportSpecRule<TOption, TSpec> {
-  applySpecs: (
-    specs: TSpec[],
+type ImportError = string | null;
+
+export interface ImportRule {
+  applyRule: (
     from: FromInfo,
-    to: () => ImportInfo,
-  ) => (string | null)[]; // returns the array of (generic) error messages
-  resolveOptions: (opts: TOption[]) => TSpec[];
+    getTo: () => ImportInfo,
+    context: Rule.RuleContext,
+  ) => ImportError[];
 }
 
-export const defineImportSpecRule = <TOption, TSpec>({
-  applySpecs,
-  resolveOptions,
-}: ImportSpecRule<TOption, TSpec>): Rule.RuleModule['create'] => {
-  let cachedOpts: TOption[] | undefined;
-  let cachedSpecs: TSpec[] | undefined;
-
-  const cachedResolveOptions = (opts: TOption[]): TSpec[] => {
-    if (opts === cachedOpts && cachedSpecs) return cachedSpecs;
-    cachedSpecs = resolveOptions(opts);
-    return cachedSpecs;
-  };
-
+export const defineImportRule = ({
+  applyRule,
+}: ImportRule): Rule.RuleModule['create'] => {
   return (context: Rule.RuleContext): Rule.RuleListener => {
     const filePath = context.getFilename();
     const absoluteFilePath = resolve(filePath);
     const absoluteFileDir = dirname(absoluteFilePath);
-    const specs = cachedResolveOptions(context.options[0] as TOption[]);
 
     const fromInfo: FromInfo = {
       absoluteFileDir,
@@ -52,7 +42,7 @@ export const defineImportSpecRule = <TOption, TSpec>({
       filePath,
     };
 
-    const applyRule = (node: Node, importedPath: string): void => {
+    const applyRuleInternal = (node: Node, importedPath: string): void => {
       const importInfo: ImportInfo = {
         importPath: importedPath,
         absoluteImportedDir: '',
@@ -72,7 +62,7 @@ export const defineImportSpecRule = <TOption, TSpec>({
         return importInfo;
       };
 
-      const failing = applySpecs(specs, fromInfo, getImportInfo).filter(
+      const failing = applyRule(fromInfo, getImportInfo, context).filter(
         isNotNull,
       );
 
@@ -94,7 +84,7 @@ export const defineImportSpecRule = <TOption, TSpec>({
     return {
       ImportDeclaration: function(node): void {
         if (node.type === 'ImportDeclaration') {
-          applyRule(node, node.source.value as string);
+          applyRuleInternal(node, node.source.value as string);
         }
       },
       CallExpression: function(node): void {
@@ -103,9 +93,42 @@ export const defineImportSpecRule = <TOption, TSpec>({
           (node.callee as Identifier).name === 'require' &&
           node.arguments[0].type === 'Literal'
         ) {
-          applyRule(node, node.arguments[0].value as string);
+          applyRuleInternal(node, node.arguments[0].value as string);
         }
       },
     };
   };
+};
+
+export interface ImportSpecRule<TOption, TSpec> {
+  applySpecs: (
+    specs: TSpec[],
+    from: FromInfo,
+    to: () => ImportInfo,
+  ) => (string | null)[]; // returns the array of (generic) error messages
+  resolveOptions: (opts: TOption[]) => TSpec[];
+}
+
+export const defineImportSpecRule = <TOption, TSpec>({
+  applySpecs,
+  resolveOptions,
+}: ImportSpecRule<TOption, TSpec>): Rule.RuleModule['create'] => {
+  let cachedOpts: TOption[] | undefined;
+  let cachedSpecs: TSpec[] | undefined;
+
+  const cachedResolveOptions = (opts: TOption[]): TSpec[] => {
+    if (opts === cachedOpts && cachedSpecs) return cachedSpecs;
+    cachedOpts = opts;
+    cachedSpecs = resolveOptions(opts);
+    return cachedSpecs;
+  };
+
+  return defineImportRule({
+    applyRule: (fromInfo, getImportInfo, context) =>
+      applySpecs(
+        cachedResolveOptions(context.options[0] as TOption[]),
+        fromInfo,
+        getImportInfo,
+      ),
+  });
 };
