@@ -1,5 +1,5 @@
 import { Rule } from 'eslint';
-import { defineImportRule, toRe } from './util';
+import { defineImportSpecRule, toRe } from './util';
 
 interface LayerOption {
   allowChildren?: boolean;
@@ -44,7 +44,7 @@ const layersRule: Rule.RuleModule = {
     ],
     type: 'suggestion',
   },
-  create: defineImportRule<LayerOption, LayerSpec>({
+  create: defineImportSpecRule<LayerOption, LayerSpec>({
     applySpecs: (specs, from, getTo) =>
       specs.map(spec => {
         //  does not apply
