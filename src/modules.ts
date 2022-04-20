@@ -1,6 +1,6 @@
 import { Rule } from 'eslint';
 import { sep } from 'path';
-import { defineImportRule, FromInfo, ImportInfo, toRe } from './util';
+import { defineImportSpecRule, FromInfo, ImportInfo, toRe } from './util';
 
 interface ExceptionSpec<T> {
   from: T;
@@ -261,7 +261,7 @@ const modulesRule: Rule.RuleModule = {
     ],
     type: 'suggestion',
   },
-  create: defineImportRule<ModuleOption, ModuleSpec>({
+  create: defineImportSpecRule<ModuleOption, ModuleSpec>({
     applySpecs: (specs, from, to) => applySpecs(specs, from, to).errors,
     resolveOptions: opts => opts.map(resolveOption),
   }),

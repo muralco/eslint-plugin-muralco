@@ -18,7 +18,7 @@ export interface ImportInfo {
   absoluteImportedDir: string;
 }
 
-export interface ImportRule<TOption, TSpec> {
+export interface ImportSpecRule<TOption, TSpec> {
   applySpecs: (
     specs: TSpec[],
     from: FromInfo,
@@ -27,10 +27,10 @@ export interface ImportRule<TOption, TSpec> {
   resolveOptions: (opts: TOption[]) => TSpec[];
 }
 
-export const defineImportRule = <TOption, TSpec>({
+export const defineImportSpecRule = <TOption, TSpec>({
   applySpecs,
   resolveOptions,
-}: ImportRule<TOption, TSpec>): Rule.RuleModule['create'] => {
+}: ImportSpecRule<TOption, TSpec>): Rule.RuleModule['create'] => {
   let cachedOpts: TOption[] | undefined;
   let cachedSpecs: TSpec[] | undefined;
 
