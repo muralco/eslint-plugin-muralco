@@ -1,5 +1,5 @@
 import { Rule } from 'eslint';
-import { CallExpression, Identifier, ImportDeclaration } from 'estree';
+import { CallExpression, Identifier, ModuleDeclaration } from 'estree';
 import { dirname, resolve } from 'path';
 
 export const toRe = (s: string): RegExp => new RegExp(s);
@@ -12,7 +12,7 @@ export interface FromInfo {
   absoluteFileDir: string;
 }
 
-type ImportNode = ImportDeclaration | CallExpression;
+type ImportNode = ModuleDeclaration | CallExpression;
 
 export interface ImportInfo {
   importPath: string;
@@ -95,6 +95,16 @@ export const defineImportRule = ({
     };
 
     return {
+      ExportAllDeclaration: function(node): void {
+        if (node.type === 'ExportAllDeclaration') {
+          applyRuleInternal(node, node.source.value as string);
+        }
+      },
+      ExportNamedDeclaration: function(node): void {
+        if (node.type === 'ExportNamedDeclaration' && node.source) {
+          applyRuleInternal(node, node.source.value as string);
+        }
+      },
       ImportDeclaration: function(node): void {
         if (node.type === 'ImportDeclaration') {
           applyRuleInternal(node, node.source.value as string);

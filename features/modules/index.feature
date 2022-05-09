@@ -40,10 +40,24 @@ Scenario: allow module interface importing module implementation
     """
   Then the code is OK
 
+Scenario: allow re-exporting implementation
+  When linting "./src/data/readers/file.js" with
+    """
+    export { fn } from '../private/other';
+    """
+  Then the code is OK
+
 Scenario: allow module implementation importing module interface
   When linting "./src/data/private/file.js" with
     """
     import '../readers/other';
+    """
+  Then the code is OK
+
+Scenario: allow re-exporting interface
+  When linting "./src/data/readers/file.js" with
+    """
+    export { fn } from '../readers/other';
     """
   Then the code is OK
 
@@ -56,10 +70,24 @@ Scenario: allow non-module dependencies
     """
   Then the code is OK
 
+Scenario: allow re-export non-module dependencies
+  When linting "./src/non-module/file.js" with
+    """
+    export { fn } from './other';
+    """
+  Then the code is OK
+
 Scenario: allow non-module to import module interface
   When linting "./src/app.js" with
     """
     import './data/readers/other';
+    """
+  Then the code is OK
+
+Scenario: allow non-module to re-export module interface
+  When linting "./src/app.js" with
+    """
+    export { fn } from './data/readers/other';
     """
   Then the code is OK
 
@@ -71,6 +99,63 @@ Scenario: reject non-module importing module implementation
   Then an error is at
     """
     >>>import './data/private/other';<<<
+    """
+  And that error message includes
+    """
+    Module abstraction violation: './src/app.js' cannot import './data/private/other'.
+    
+    './data/private/other' is part of module 'src/data' but not listed in the module public
+    interface (i.e. is an implementation detail).
+
+    Data module is defined in https://path/to/docs
+    """
+
+Scenario: reject non-module re-exporting module implementation
+  When linting "./src/app.js" with
+    """
+    export { fn } from './data/private/other';
+    """
+  Then an error is at
+    """
+    >>>export { fn } from './data/private/other';<<<
+    """
+  And that error message includes
+    """
+    Module abstraction violation: './src/app.js' cannot import './data/private/other'.
+    
+    './data/private/other' is part of module 'src/data' but not listed in the module public
+    interface (i.e. is an implementation detail).
+
+    Data module is defined in https://path/to/docs
+    """
+
+Scenario: reject non-module re-exporting full module implementation
+  When linting "./src/app.js" with
+    """
+    export * from './data/private/other';
+    """
+  Then an error is at
+    """
+    >>>export * from './data/private/other';<<<
+    """
+  And that error message includes
+    """
+    Module abstraction violation: './src/app.js' cannot import './data/private/other'.
+    
+    './data/private/other' is part of module 'src/data' but not listed in the module public
+    interface (i.e. is an implementation detail).
+
+    Data module is defined in https://path/to/docs
+    """
+
+Scenario: reject non-module re-exporting default module implementation
+  When linting "./src/app.js" with
+    """
+    export { default as fn } from './data/private/other';
+    """
+  Then an error is at
+    """
+    >>>export { default as fn } from './data/private/other';<<<
     """
   And that error message includes
     """
