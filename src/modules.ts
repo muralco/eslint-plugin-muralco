@@ -7,8 +7,13 @@ interface ExceptionSpec<T> {
   to: T;
 }
 
+interface DependencySpec {
+  path: string;
+  on: string | string[];
+}
+
 interface ModuleOption {
-  dependencies?: string[];
+  dependencies?: (string | DependencySpec)[];
   exceptions?: ExceptionSpec<string>[];
   externals?: string[];
   interface?: string[] | string;
@@ -19,7 +24,7 @@ interface ModuleOption {
 }
 
 interface ModuleSpec {
-  dependencies: string[];
+  dependencies: { path: string; on: RegExp[] }[];
   exceptions: ExceptionSpec<RegExp>[];
   externals: RegExp[];
   interfaces: RegExp[];
@@ -68,6 +73,18 @@ const inboundImportAllowed = (
   // or the `(from, to)` tuple is listed as a valid exception
   isModuleException(from, to, toModule);
 
+const isModuleDependency = (
+  fromModule: ModuleSpec,
+  toModule: ModuleSpec,
+  to: ImportInfo,
+): boolean =>
+  fromModule.dependencies.some(
+    d =>
+      d.path === toModule.path &&
+      (d.on.length === 0 ||
+        d.on.some(rule => to.absoluteImportedPath.match(rule))),
+  );
+
 const outboundModuleImportAllowed = (
   from: FromInfo,
   to: ImportInfo,
@@ -75,7 +92,7 @@ const outboundModuleImportAllowed = (
   toModule: ModuleSpec,
 ): boolean =>
   // `to` is listed in the dependencies of `from`
-  fromModule.dependencies.includes(toModule.path) ||
+  isModuleDependency(fromModule, toModule, to) ||
   // or the `(from, to)` tuple is listed as a valid exception
   isModuleException(from, to, fromModule);
 
@@ -92,7 +109,14 @@ const outboundExternalImportAllowed = (
   isModuleException(from, to, fromModule);
 
 const resolveOption = (opt: ModuleOption): ModuleSpec => ({
-  dependencies: opt.dependencies || [],
+  dependencies: (opt.dependencies || []).map(d =>
+    typeof d === 'string'
+      ? { path: d, on: [] }
+      : {
+          path: d.path,
+          on: (typeof d.on === 'string' ? [d.on] : d.on).map(toRe),
+        },
+  ),
   exceptions: [...(opt.exceptions || []), ...(opt.techdebt || [])].map(e => ({
     from: toRe(e.from),
     to: toRe(e.to),
