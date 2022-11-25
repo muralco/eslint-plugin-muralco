@@ -133,7 +133,7 @@ const setup: SetupFn = ({
           endColumn: end.column,
           endLine: end.line,
           line: start.line,
-          message,
+          ...(message && { message }),
         }),
       );
       setCtx(
