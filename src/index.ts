@@ -18,10 +18,10 @@ module.exports = {
   rules: {
     'bounded-imports': boundedImports,
     'custom-jsx': customJsxRule,
-    layers: layersRule,
-    modules: modulesRule,
+    'no-inline-script': noInlineScript,
     'short-imports': shortImportsRule,
     'sorted-imports': sortedImportsRule,
-    'no-inline-script': noInlineScript,
+    layers: layersRule,
+    modules: modulesRule,
   },
 };
