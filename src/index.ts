@@ -4,6 +4,7 @@ import modulesRule from './modules';
 import shortImportsRule from './short-imports';
 import sortedImportsRule from './sorted-imports';
 import customJsxRule from './custom-jsx';
+import noInlineScript from './no-inline-script';
 
 module.exports = {
   configs: {
@@ -17,9 +18,10 @@ module.exports = {
   rules: {
     'bounded-imports': boundedImports,
     'custom-jsx': customJsxRule,
-    layers: layersRule,
-    modules: modulesRule,
+    'no-inline-script': noInlineScript,
     'short-imports': shortImportsRule,
     'sorted-imports': sortedImportsRule,
+    layers: layersRule,
+    modules: modulesRule,
   },
 };
